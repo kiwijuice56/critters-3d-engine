@@ -61,7 +61,7 @@ public class ScreenWorld extends ActorWorld {
 		double moveX = (x2 - x1) / pixelCnt, moveY = (y2 - y1) / pixelCnt;
 
 		for (int i = 0; i < pixelCnt; i++) {
-			setPixelColor((int) Math.floor(x1), (int) Math.floor(y1), Color.CYAN);
+			setPixelColor((int) Math.floor(x1), (int) Math.floor(y1), new Color(120,0,200));
 
 			x1 += moveX;
 			y1 += moveY;

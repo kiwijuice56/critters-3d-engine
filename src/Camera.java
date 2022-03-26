@@ -22,6 +22,9 @@ public class Camera {
 				Vector transformedPt = translatePoint(rotatePoint(pt, mesh.getRotation()), mesh.getTranslation());
 				rPts.add(rasterizePoint(transformedPt, screen.getWidth(), angle));
 			}
+			tri.calculateNormal(rPts);
+			if (tri.getNormal().z > 0)
+				continue;
 			screen.drawTriangle(rPts);
 		}
 	}
