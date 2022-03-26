@@ -23,7 +23,7 @@ public class Camera {
 				rPts.add(rasterizePoint(transformedPt, screen.getWidth(), angle));
 			}
 			tri.calculateNormal(rPts);
-			if (tri.getNormal().z > 0)
+			if (tri.getNormal().z < 0)
 				continue;
 			screen.drawTriangle(rPts);
 		}
@@ -75,8 +75,8 @@ public class Camera {
 	 */
 	private static Vector rasterizePoint(Vector pt, double screenSize, double angle) {
 		return new Vector(
-				screenSize * (0.5 + ((pt.x * angle) / Math.abs(pt.z))),
-				screenSize * (0.5 + ((pt.y * angle) / Math.abs(pt.z))),
+				screenSize * (0.5 + ((pt.x * angle) / -Math.abs(pt.z))),
+				screenSize * (0.5 + ((pt.y * angle) / -Math.abs(pt.z))),
 				0);
 	}
 }

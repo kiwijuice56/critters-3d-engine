@@ -22,6 +22,8 @@ public final class ObjImporter {
 
 		while (s.hasNext()) {
 			String line = s.nextLine();
+			if (line.length() == 0)
+				continue;
 			switch (line.charAt(0)) {
 				case 'v' -> {
 					String[] ptStr = line.substring(2).split(" ");
