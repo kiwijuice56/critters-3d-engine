@@ -1,36 +1,73 @@
+import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 
 /**
- * Rasterize meshes to be represented on a ScreenWorld
-  */
+ * Converts 3D meshes to 2D projections to be drawn on a ScreenWorld
+ */
 public class Camera {
-	private static final double fov = Math.toRadians(120);
+	private static final double FOV = Math.toRadians(120);
 
 	/**
-	 * Rasterizes a mesh and paints it onto the screen world
-	 * @param screen
-	 * @param mesh
+	 * Rasterizes a mesh onto the ScreenWorld
+	 * @param screen The screen to draw to
+	 * @param mesh The mesh to draw
 	 */
 	public static void rasterizeMesh(ScreenWorld screen, Mesh mesh) {
-		double angle = 1.0/Math.tan(fov/2.0);
+		double angle = 1.0 / Math.tan(FOV / 2.0);
+		List<Triangle> triList = new ArrayList<>();
 
-		// Create copies of triangle points to transform them, then draws them onto the screen
+		// Create copies of triangle points to transform them, then add to a list to sort by depth
+
 		for (Triangle tri : mesh.getTris()) {
-			List<Vector> rPts = new ArrayList<>();
-			for (Vector pt : tri.getPts()) {
-				Vector transformedPt = translatePoint(rotatePoint(pt, mesh.getRotation()), mesh.getTranslation());
-				rPts.add(rasterizePoint(transformedPt, screen.getWidth(), angle));
-			}
-			tri.calculateNormal(rPts);
-			if (tri.getNormal().z < 0)
+			List<Vector> transformedPts = new ArrayList<>();
+			// Translate and rotate each point of the triangle
+			for (Vector pt : tri.getPts())
+				transformedPts.add(translatePoint(rotatePoint(pt, mesh.getRotation()), mesh.getTranslation()));
+			triList.add(new Triangle(transformedPts));
+		}
+
+		// This method of depth correction, called the Painter's Method, is a crude but fast way to ensure that
+		// triangles are mostly drawn in the correct order
+		triList.sort(Comparator.comparingDouble(Triangle::getCenterDepth));
+
+		for (Triangle tri : triList) {
+			List<Vector> projectedPts = new ArrayList<>();
+			// Project each point of the triangle
+			for (Vector pt : tri.getPts())
+				projectedPts.add(projectPoint(pt, screen.getWidth(), angle));
+
+			Vector normal = Triangle.calculateNormal(tri);
+			Triangle projectedTri = new Triangle(projectedPts);
+
+
+			// Skip drawing if projected triangle is facing away from camera
+			if (Triangle.calculateNormal(projectedTri).z < 0)
 				continue;
-			screen.drawTriangle(rPts);
+
+			projectedTri.setColor(Color.BLACK);
+
+			// Add each light color scaled by the dot product of the light direction and the triangle normal
+			for (Light light : screen.getScene().getLights()) {
+				double strength = Math.max(0, light.getDir().dot(normal)) * light.getStrength();
+
+				Color c = light.getColor();
+				projectedTri.tintColor(new Color(
+						(int) (c.getRed() * strength),
+						(int) (c.getGreen() * strength),
+						(int) (c.getBlue() * strength)));
+			}
+			projectedTri.blendColor(mesh.getModulate());
+
+			screen.setDrawColor(projectedTri.getColor());
+
+			screen.fillTriangle(projectedTri);
 		}
 	}
 
 	/**
-	 * Applies rotation matrix to rotate a point
+	 * Applies rotation matrix to a point
 	 * @param pt The point to be rotated
 	 * @param rot The rotation vector
 	 * @return The rotated point
@@ -68,12 +105,12 @@ public class Camera {
 	}
 
 	/**
-	 * Applies projection matrix to rotate a point
+	 * Applies projection matrix to a point
 	 * @param pt The point to be projected
 	 * @param screenSize The minimum of the screen's width and height to scale up the rasterization
 	 * @return The projected point
 	 */
-	private static Vector rasterizePoint(Vector pt, double screenSize, double angle) {
+	private static Vector projectPoint(Vector pt, double screenSize, double angle) {
 		return new Vector(
 				screenSize * (0.5 + ((pt.x * angle) / -Math.abs(pt.z))),
 				screenSize * (0.5 + ((pt.y * angle) / -Math.abs(pt.z))),

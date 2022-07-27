@@ -1,5 +1,5 @@
 /**
- * Represents a 3D point
+ * Represents a 3D point or direction
  */
 public class Vector {
 	public double x, y, z;
@@ -14,11 +14,6 @@ public class Vector {
 		this.z = z;
 	}
 
-	/**
-	 * Returns the result of subtracting the other vector from this vector
-	 * @param other
-	 * @return This vector - other vector
-	 */
 	public Vector subtract(Vector other) {
 		Vector subtracted = new Vector();
 		subtracted.x = x - other.x;
@@ -27,8 +22,23 @@ public class Vector {
 		return subtracted;
 	}
 
+	public double dot(Vector other) {
+		return other.x * x + other.y * y + other.z * z;
+	}
+
+	/* * * Accessor and mutator methods * * */
+
 	@Override
 	public String toString() {
 		return "(%.3f,%.3f,%.3f)".formatted(x, y, z);
+	}
+
+	public Vector normalized() {
+		double length = length();
+		return new Vector(x/length, y/length, z/length);
+	}
+
+	public double length() {
+		return Math.sqrt(x*x + y*y + z*z);
 	}
 }

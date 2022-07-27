@@ -1,18 +1,23 @@
+import java.awt.Color;
 import java.util.List;
 
 /**
  * Represents a collection of Triangles with a position and rotation
  */
 public class Mesh {
-	private List<Triangle> tris;
+	private final List<Triangle> tris;
 	private Vector rotation;
 	private Vector translation;
+	private Color modulate;
 
 	public Mesh(List<Triangle> tris) {
 		this.tris = tris;
 		this.rotation = new Vector(0, 0, 0);
 		this.translation = new Vector(0,0,0);
+		this.modulate = Color.WHITE;
 	}
+
+	/* * * Accessor and mutator methods * * */
 
 	@Override
 	public String toString() {
@@ -21,10 +26,6 @@ public class Mesh {
 
 	public List<Triangle> getTris() {
 		return tris;
-	}
-
-	public void setTris(List<Triangle> tris) {
-		this.tris = tris;
 	}
 
 	public Vector getRotation() {
@@ -41,5 +42,13 @@ public class Mesh {
 
 	public void setTranslation(Vector translation) {
 		this.translation = translation;
+	}
+
+	public Color getModulate() {
+		return modulate;
+	}
+
+	public void setModulate(Color modulate) {
+		this.modulate = modulate;
 	}
 }
