@@ -1,4 +1,6 @@
 import java.awt.Color;
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 
 /**
@@ -6,18 +8,28 @@ import java.util.List;
  */
 public class Triangle {
 	private final List<Vector> pts;
+	private final List<Vector> tPts;
 	private Color color;
 
 	public Triangle(List<Vector> pts) {
+		this(pts, new ArrayList<>(Arrays.asList(
+				new Vector(0, 0, 0),
+				new Vector(1, 1, 0),
+				new Vector(0, 1, 0))));
+	}
+
+	public Triangle(List<Vector> pts, List<Vector> tPts) {
 		this.pts = pts;
+		this.tPts = tPts;
 	}
 
 	/**
-	 * Calculates and returns normal of a triangle using the crossproduct of two edges
+	 * Calculates and returns normal of a triangle using the cross-product of two edges
 	 * @param tri
 	 */
 	public static Vector calculateNormal(Triangle tri) {
 		List<Vector> pts = tri.getPts();
+
 		Vector u = pts.get(1).subtract(pts.get(0));
 		Vector v = pts.get(2).subtract(pts.get(0));
 		Vector normal = new Vector();
@@ -39,6 +51,10 @@ public class Triangle {
 		return pts;
 	}
 
+	public List<Vector> getTPts() {
+		return tPts;
+	}
+
 	public Color getColor() {
 		return color;
 	}
@@ -54,11 +70,11 @@ public class Triangle {
 				Math.min(255, this.color .getBlue() + add.getBlue()));
 	}
 
-	public void blendColor(Color blend) {
-		this.color = new Color(
-				(int) (255 * (this.color.getRed() / 255.0) * (blend.getRed() / 255.0)),
-				(int) (255 * (this.color.getGreen() / 255.0) * (blend.getGreen() / 255.0)),
-				(int) (255 * (this.color.getBlue() / 255.0) * (blend.getBlue() / 255.0)));
+	public static Color blendColor(Color blend1, Color blend2) {
+		return new Color(
+				(int) (255 * (blend2.getRed() / 255.0) * (blend1.getRed() / 255.0)),
+				(int) (255 * (blend2.getGreen() / 255.0) * (blend1.getGreen() / 255.0)),
+				(int) (255 * (blend2.getBlue() / 255.0) * (blend1.getBlue() / 255.0)));
 	}
 
 	public double getCenterDepth() {

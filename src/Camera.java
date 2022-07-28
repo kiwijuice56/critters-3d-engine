@@ -15,6 +15,10 @@ public class Camera {
 	 * @param mesh The mesh to draw
 	 */
 	public static void rasterizeMesh(ScreenWorld screen, Mesh mesh) {
+		screen.setLoadedTexture(mesh.getTexture());
+		screen.setTextureWidth(mesh.getTextureWidth());
+		screen.setTextureHeight(mesh.getTextureHeight());
+
 		double angle = 1.0 / Math.tan(FOV / 2.0);
 		List<Triangle> triList = new ArrayList<>();
 
@@ -25,12 +29,12 @@ public class Camera {
 			// Translate and rotate each point of the triangle
 			for (Vector pt : tri.getPts())
 				transformedPts.add(translatePoint(rotatePoint(pt, mesh.getRotation()), mesh.getTranslation()));
-			triList.add(new Triangle(transformedPts));
+			triList.add(new Triangle(transformedPts, tri.getTPts()));
 		}
 
 		// This method of depth correction, called the Painter's Method, is a crude but fast way to ensure that
 		// triangles are mostly drawn in the correct order
-		triList.sort(Comparator.comparingDouble(Triangle::getCenterDepth));
+		// triList.sort(Comparator.comparingDouble(Triangle::getCenterDepth));
 
 		for (Triangle tri : triList) {
 			List<Vector> projectedPts = new ArrayList<>();
@@ -39,30 +43,35 @@ public class Camera {
 				projectedPts.add(projectPoint(pt, screen.getWidth(), angle));
 
 			Vector normal = Triangle.calculateNormal(tri);
-			Triangle projectedTri = new Triangle(projectedPts);
-
+			Triangle projectedTri = new Triangle(projectedPts, tri.getTPts());
 
 			// Skip drawing if projected triangle is facing away from camera
 			if (Triangle.calculateNormal(projectedTri).z < 0)
 				continue;
 
-			projectedTri.setColor(Color.BLACK);
+			if (screen.isDrawFace()) {
+				projectedTri.setColor(Color.BLACK);
+				// Add each light color scaled by the dot product of the light direction and the triangle normal
+				for (Light light : screen.getScene().getLights()) {
+					double strength = Math.max(0, light.getDir().dot(normal)) * light.getStrength();
 
-			// Add each light color scaled by the dot product of the light direction and the triangle normal
-			for (Light light : screen.getScene().getLights()) {
-				double strength = Math.max(0, light.getDir().dot(normal)) * light.getStrength();
+					Color c = light.getColor();
+					projectedTri.tintColor(new Color(
+							(int) (c.getRed() * strength),
+							(int) (c.getGreen() * strength),
+							(int) (c.getBlue() * strength)));
+				}
+				projectedTri.setColor(Triangle.blendColor(projectedTri.getColor(), mesh.getModulate()));
 
-				Color c = light.getColor();
-				projectedTri.tintColor(new Color(
-						(int) (c.getRed() * strength),
-						(int) (c.getGreen() * strength),
-						(int) (c.getBlue() * strength)));
+				screen.setDrawColor(projectedTri.getColor());
+
+				screen.fillTriangle(projectedTri);
 			}
-			projectedTri.blendColor(mesh.getModulate());
 
-			screen.setDrawColor(projectedTri.getColor());
-
-			screen.fillTriangle(projectedTri);
+			if (screen.isDrawOutline()) {
+				screen.setDrawColor(Color.BLACK);
+				screen.drawTriangle(projectedTri);
+			}
 		}
 	}
 
@@ -107,13 +116,13 @@ public class Camera {
 	/**
 	 * Applies projection matrix to a point
 	 * @param pt The point to be projected
-	 * @param screenSize The minimum of the screen's width and height to scale up the rasterization
+	 * @param screenSize The minimum of the screen's width and height to scale up the projection
 	 * @return The projected point
 	 */
 	private static Vector projectPoint(Vector pt, double screenSize, double angle) {
 		return new Vector(
 				screenSize * (0.5 + ((pt.x * angle) / -Math.abs(pt.z))),
 				screenSize * (0.5 + ((pt.y * angle) / -Math.abs(pt.z))),
-				0);
+				pt.z);
 	}
 }

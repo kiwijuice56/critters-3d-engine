@@ -1,4 +1,6 @@
 import java.awt.Color;
+import java.awt.image.BufferedImage;
+import java.awt.image.DataBufferByte;
 import java.util.List;
 
 /**
@@ -10,11 +12,17 @@ public class Mesh {
 	private Vector translation;
 	private Color modulate;
 
+	private byte[] texture;
+	private int textureWidth, textureHeight;
+
 	public Mesh(List<Triangle> tris) {
 		this.tris = tris;
 		this.rotation = new Vector(0, 0, 0);
 		this.translation = new Vector(0,0,0);
 		this.modulate = Color.WHITE;
+
+		this.textureWidth = 0;
+		this.textureHeight = 0;
 	}
 
 	/* * * Accessor and mutator methods * * */
@@ -50,5 +58,23 @@ public class Mesh {
 
 	public void setModulate(Color modulate) {
 		this.modulate = modulate;
+	}
+
+	public byte[] getTexture() {
+		return texture;
+	}
+
+	public void setTexture(BufferedImage img) {
+		this.texture = ((DataBufferByte) img.getRaster().getDataBuffer()).getData();
+		this.textureHeight = img.getHeight();
+		this.textureWidth = img.getWidth();
+	}
+
+	public int getTextureWidth() {
+		return textureWidth;
+	}
+
+	public int getTextureHeight() {
+		return textureHeight;
 	}
 }

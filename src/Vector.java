@@ -15,11 +15,7 @@ public class Vector {
 	}
 
 	public Vector subtract(Vector other) {
-		Vector subtracted = new Vector();
-		subtracted.x = x - other.x;
-		subtracted.y = y - other.y;
-		subtracted.z = z - other.z;
-		return subtracted;
+		return new Vector(x - other.x, y - other.y, z - other.z);
 	}
 
 	public double dot(Vector other) {

@@ -19,24 +19,36 @@ public final class ObjImporter {
 	public static Mesh importObj(Scanner s) {
 		List<Triangle> tris = new ArrayList<>();
 		List<Vector> pts = new ArrayList<>();
+		List<Vector> uvPts = new ArrayList<>();
 
 		while (s.hasNext()) {
 			String line = s.nextLine();
 			if (line.length() == 0)
 				continue;
-			switch (line.charAt(0)) {
-				case 'v' -> {
+			switch (line.substring(0, 2)) {
+				case "v " -> {
 					String[] ptStr = line.substring(2).split(" ");
 					double x = Double.parseDouble(ptStr[0]);
 					double y = Double.parseDouble(ptStr[1]);
 					double z = Double.parseDouble(ptStr[2]);
 					pts.add(new Vector(x, y, z));
 				}
-				case 'f' -> {
+				case "vt" -> {
+					String[] ptStr = line.substring(3).split(" ");
+					double x = Double.parseDouble(ptStr[0]);
+					double y = 1.0 - Double.parseDouble(ptStr[1]);
+					uvPts.add(new Vector(x, y, 0));
+				}
+				case "f " -> {
 					List<Vector> triPts = new ArrayList<>(3);
-					for (String pt : line.substring(2).split(" "))
-						triPts.add(pts.get(Integer.parseInt(pt) - 1));
-					tris.add(new Triangle(triPts));
+					List<Vector> triUvPts = new ArrayList<>(3);
+
+					for (String pt : line.substring(2).split(" ")) {
+						triPts.add(pts.get(Integer.parseInt(pt.substring(0, pt.indexOf('/'))) - 1));
+						triUvPts.add(uvPts.get(Integer.parseInt(pt.substring(pt.indexOf('/') + 1)) - 1));
+					}
+
+					tris.add(new Triangle(triPts, triUvPts));
 				}
 			}
 		}
