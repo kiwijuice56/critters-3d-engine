@@ -8,6 +8,7 @@ import java.util.List;
  */
 public class Mesh {
 	private final List<Triangle> tris;
+	private String name;
 	private Vector rotation;
 	private Vector translation;
 	private Color modulate;
@@ -29,11 +30,19 @@ public class Mesh {
 
 	@Override
 	public String toString() {
-		return "M=[%s, rot=%s, trans=%s]".formatted(tris, rotation, translation);
+		return "%s:\n	pos: %s\n	rot: %s".formatted(name, translation, rotation);
 	}
 
 	public List<Triangle> getTris() {
 		return tris;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public Vector getRotation() {

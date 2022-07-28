@@ -17,6 +17,8 @@ public final class ObjImporter {
 	 * @return The created mesh
 	 */
 	public static Mesh importObj(Scanner s) {
+		String name = "UntitledMesh";
+
 		List<Triangle> tris = new ArrayList<>();
 		List<Vector> pts = new ArrayList<>();
 		List<Vector> uvPts = new ArrayList<>();
@@ -26,6 +28,9 @@ public final class ObjImporter {
 			if (line.length() == 0)
 				continue;
 			switch (line.substring(0, 2)) {
+				case "o " -> {
+					name = line.substring(2);
+				}
 				case "v " -> {
 					String[] ptStr = line.substring(2).split(" ");
 					double x = Double.parseDouble(ptStr[0]);
@@ -52,6 +57,8 @@ public final class ObjImporter {
 				}
 			}
 		}
-		return new Mesh(tris);
+		Mesh m = new Mesh(tris);
+		m.setName(name);
+		return m;
 	}
 }

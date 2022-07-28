@@ -49,26 +49,28 @@ public class Camera {
 				continue;
 
 			if (screen.isDrawFace()) {
-				projectedTri.setColor(Color.BLACK);
-				// Add each light color scaled by the dot product of the light direction and the triangle normal
-				for (Light light : screen.getScene().getLights()) {
-					double strength = Math.max(0, light.getDir().dot(normal)) * light.getStrength();
+				if (screen.isShadeFace()) {
+					screen.setDrawColor(Color.BLACK);
+					// Add each light color scaled by the dot product of the light direction and the triangle normal
+					for (Light light : screen.getScene().getLights()) {
+						double strength = Math.max(0, light.getDir().dot(normal)) * light.getStrength();
 
-					Color c = light.getColor();
-					projectedTri.tintColor(new Color(
-							(int) (c.getRed() * strength),
-							(int) (c.getGreen() * strength),
-							(int) (c.getBlue() * strength)));
+						Color c = light.getColor();
+						screen.setDrawColor(
+								ColorHelper.tintColor(screen.getDrawColor(), new Color(
+										(int) (c.getRed() * strength),
+										(int) (c.getGreen() * strength),
+										(int) (c.getBlue() * strength))));
+					}
+					screen.setDrawColor(ColorHelper.blendColor(screen.getDrawColor(), mesh.getModulate()));
+				} else {
+					screen.setDrawColor(mesh.getModulate());
 				}
-				projectedTri.setColor(Triangle.blendColor(projectedTri.getColor(), mesh.getModulate()));
-
-				screen.setDrawColor(projectedTri.getColor());
-
 				screen.fillTriangle(projectedTri);
 			}
 
 			if (screen.isDrawOutline()) {
-				screen.setDrawColor(Color.BLACK);
+				screen.setDrawColor(Color.WHITE);
 				screen.outlineTriangle(projectedTri);
 			}
 		}

@@ -18,6 +18,10 @@ public class Vector {
 		return new Vector(x - other.x, y - other.y, z - other.z);
 	}
 
+	public Vector add(Vector other) {
+		return new Vector(x + other.x, y + other.y, z + other.z);
+	}
+
 	public double dot(Vector other) {
 		return other.x * x + other.y * y + other.z * z;
 	}

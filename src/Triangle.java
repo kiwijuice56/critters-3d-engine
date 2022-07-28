@@ -9,7 +9,6 @@ import java.util.List;
 public class Triangle {
 	private final List<Vector> pts;
 	private final List<Vector> tPts;
-	private Color color;
 
 	public Triangle(List<Vector> pts) {
 		this(pts, new ArrayList<>(Arrays.asList(
@@ -53,28 +52,6 @@ public class Triangle {
 
 	public List<Vector> getTPts() {
 		return tPts;
-	}
-
-	public Color getColor() {
-		return color;
-	}
-
-	public void setColor(Color color) {
-		this.color = color;
-	}
-
-	public void tintColor(Color add) {
-		this.color = new Color(
-				Math.min(255, this.color .getRed() + add.getRed()),
-				Math.min(255, this.color .getGreen() + add.getGreen()),
-				Math.min(255, this.color .getBlue() + add.getBlue()));
-	}
-
-	public static Color blendColor(Color blend1, Color blend2) {
-		return new Color(
-				(int) (255 * (blend2.getRed() / 255.0) * (blend1.getRed() / 255.0)),
-				(int) (255 * (blend2.getGreen() / 255.0) * (blend1.getGreen() / 255.0)),
-				(int) (255 * (blend2.getBlue() / 255.0) * (blend1.getBlue() / 255.0)));
 	}
 
 	public double getCenterDepth() {

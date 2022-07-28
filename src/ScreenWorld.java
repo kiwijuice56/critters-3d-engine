@@ -13,7 +13,7 @@ import java.util.List;
 public class ScreenWorld extends ActorWorld {
 	private final int width, height;
 	private Color drawColor, backgroundColor;
-	private boolean drawOutline, drawFace;
+	private boolean drawOutline, drawFace, shadeFace, showcaseRotation;
 
 	private Scene scene;
 
@@ -23,6 +23,8 @@ public class ScreenWorld extends ActorWorld {
 	private int minCanvasX, minCanvasY, maxCanvasX, maxCanvasY;
 	private final double[][] depthBuffer;
 
+	private final Vector rotationPerStep = new Vector(0.05, -0.1, 0.02);
+
 	public ScreenWorld(int width, int height) {
 		this.scene = new Scene();
 		this.width = width;
@@ -30,8 +32,11 @@ public class ScreenWorld extends ActorWorld {
 		this.drawColor = Color.BLACK;
 		this.backgroundColor = Color.BLACK;
 		this.depthBuffer = new double[height][width];
+
 		this.drawOutline = false;
 		this.drawFace = true;
+		this.shadeFace = true;
+		this.showcaseRotation = true;
 
 		// Initialize grid with new actors
 		setGrid(new BoundedGrid<>(this.height, this.width));
@@ -48,17 +53,18 @@ public class ScreenWorld extends ActorWorld {
 
 	@Override
 	public void step() {
-		long start = System.nanoTime();
 		clear();
 		minCanvasX = width-1; minCanvasY = height-1;
 		maxCanvasX = 0; maxCanvasY = 0;
 		for (Mesh m : scene.getMeshes()) {
-			// Rotation transformation here is a temporary choice to allow objects to rotate in every step
-			m.setRotation(new Vector(m.getRotation().x + 0.05, m.getRotation().y - 0.1, m.getRotation().z + 0.02));
+			if (isShowcaseRotation())
+				m.setRotation(new Vector(
+						m.getRotation().x + rotationPerStep.x,
+						m.getRotation().y + rotationPerStep.y,
+						m.getRotation().z + rotationPerStep.z));
 
 			Camera.rasterizeMesh(this, m);
 		}
-		System.out.println(1000000000.0 / (System.nanoTime() - start));
 	}
 
 	/**
@@ -149,7 +155,6 @@ public class ScreenWorld extends ActorWorld {
 
 				if (z > depthBuffer[(int) y][(int) x]) {
 					depthBuffer[(int) y][(int) x] = z;
-					updateCanvasBorder((int) x, (int) y);
 
 					double tx = tx1 + (tx2 - tx1) * ((x - x1) / (x2 - x1));
 					double ty = ty1 + (ty2 - ty1) * ((x - x1) / (x2 - x1));
@@ -195,7 +200,6 @@ public class ScreenWorld extends ActorWorld {
 				double z = z1 + (x - x1) * ((z2 - z1) / (x2 - x1));
 				if (z > depthBuffer[(int) y][(int) x]) {
 					depthBuffer[(int) y][(int) x] = z;
-					updateCanvasBorder((int) x, (int) y);
 
 					double tx = tx1 + (tx2 - tx1) * ((x - x1) / (x2 - x1));
 					double ty = ty1 + (ty2 - ty1) * ((x - x1) / (x2 - x1));
@@ -215,20 +219,24 @@ public class ScreenWorld extends ActorWorld {
 	 * Paints a pixel color onto the screen given screen and UV coordinates
 	 */
 	private void setPixelColorTexture(int x, int y, double tx, double ty) {
-		int col = (int) (ty * textureHeight);
-		int row = (int) (tx * textureWidth);
+		if (loadedTexture != null) {
+			int col = (int) (ty * textureHeight);
+			int row = (int) (tx * textureWidth);
 
-		int idx = (col * textureWidth + row) * 4 ;
+			int idx = (col * textureWidth + row) * 4 ;
 
-		if (idx >= loadedTexture.length)
-			return;
-		int argb = 0;
-		argb += (((int) loadedTexture[idx] & 0xff) << 24); // alpha
-		argb += ((int) loadedTexture[idx + 1] & 0xff); // blue
-		argb += (((int) loadedTexture[idx + 2] & 0xff) << 8); // green
-		argb += (((int) loadedTexture[idx + 3] & 0xff) << 16); // red
+			if (idx >= loadedTexture.length)
+				return;
+			int argb = 0;
+			argb += (((int) loadedTexture[idx] & 0xff) << 24); // alpha
+			argb += ((int) loadedTexture[idx + 1] & 0xff); // blue
+			argb += (((int) loadedTexture[idx + 2] & 0xff) << 8); // green
+			argb += (((int) loadedTexture[idx + 3] & 0xff) << 16); // red
 
-		setPixelColor(x, y, Triangle.blendColor(new Color(argb), getDrawColor()));
+			setPixelColor(x, y, ColorHelper.blendColor(new Color(argb), getDrawColor()));
+		} else {
+			setPixelColor(x, y, getDrawColor());
+		}
 	}
 
 	/**
@@ -237,6 +245,7 @@ public class ScreenWorld extends ActorWorld {
 	public void setPixelColor(int x, int y, Color c) {
 		if (x < 0 || x >= width || y < 0 || y >= height)
 			return;
+		updateCanvasBorder(x, y);
 		getGrid().get(new Location(y, x)).setColor(c);
 	}
 
@@ -287,6 +296,8 @@ public class ScreenWorld extends ActorWorld {
 	}
 
 	public void setBackgroundColor(Color backgroundColor) {
+		updateCanvasBorder(0, 0);
+		updateCanvasBorder(width-1, height-1);
 		this.backgroundColor = backgroundColor;
 	}
 
@@ -304,6 +315,22 @@ public class ScreenWorld extends ActorWorld {
 
 	public void setDrawFace(boolean drawFace) {
 		this.drawFace = drawFace;
+	}
+
+	public boolean isShadeFace() {
+		return shadeFace;
+	}
+
+	public void setShadeFace(boolean shadeFace) {
+		this.shadeFace = shadeFace;
+	}
+
+	public boolean isShowcaseRotation() {
+		return showcaseRotation;
+	}
+
+	public void setShowcaseRotation(boolean showcaseRotation) {
+		this.showcaseRotation = showcaseRotation;
 	}
 
 	public byte[] getLoadedTexture() {
