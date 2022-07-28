@@ -20,7 +20,7 @@ public class MainRunner {
 		Mesh pot = ObjImporter.importObj(new Scanner(new File("resources/cube.obj")));
 
 		//cube.setTranslation(new Vector(.5,.2,-2.5));
-		cube.setTranslation(new Vector(.5,.2,-1.4));
+		cube.setTranslation(new Vector(-.1,.2,-1.5));
 		cube2.setTranslation(new Vector(-.2,-.2,-1.5));
 		cube3.setTranslation(new Vector(.1,-.4,-1.25));
 
@@ -36,8 +36,8 @@ public class MainRunner {
 		//screen.getScene().getMeshes().add(cube3);
 
 		//screen.getScene().getLights().add(new Light(new Vector(-1, .5, .5), new Color(0, 70, 140), 0.35));
-		screen.getScene().getLights().add(new Light(new Vector(1, -.5, .5), new Color(255, 120, 0), 0.35));
-		screen.getScene().getLights().add(new Light(new Vector(.1, .9, .5), Color.WHITE, 0.9));
+		//screen.getScene().getLights().add(new Light(new Vector(1, -.5, .5), new Color(255, 120, 0), 0.35));
+		screen.getScene().getLights().add(new Light(new Vector(0, .2, 1), Color.WHITE, 0.99));
 
 		screen.show();
 		screen.step();

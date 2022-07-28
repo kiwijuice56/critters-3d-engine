@@ -1,6 +1,5 @@
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -70,7 +69,7 @@ public class Camera {
 
 			if (screen.isDrawOutline()) {
 				screen.setDrawColor(Color.BLACK);
-				screen.drawTriangle(projectedTri);
+				screen.outlineTriangle(projectedTri);
 			}
 		}
 	}
