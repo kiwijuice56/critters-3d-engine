@@ -16,34 +16,41 @@ public class PixelActor extends Actor {
 
 	public void setBackgroundColor(Color backgroundColor) {
 		screen.setBackgroundColor(backgroundColor);
-		refresh();
+		screen.redraw();
 	}
 
-	public void toggleOutline(boolean isWireframeVisible) {
-		screen.setDrawOutline(isWireframeVisible);
-		refresh();
+	public void setEdgeColor(Color edgeColor) {
+		screen.setEdgeColor(edgeColor);
+		screen.redraw();
 	}
 
-	public void toggleFill(boolean isFaceVisible) {
-		screen.setDrawFace(isFaceVisible);
-		refresh();
+	public void toggleOutline(boolean drawOutline) {
+		screen.getScene().getMainCamera().setOption(Camera.DRAW_EDGES, drawOutline);
+		screen.redraw();
 	}
 
-	public void toggleShading(boolean isFaceVisible) {
-		screen.setShadeFace(isFaceVisible);
-		refresh();
+	public void toggleFill(boolean drawFaces) {
+		screen.getScene().getMainCamera().setOption(Camera.FILL_FACES, drawFaces);
+		screen.redraw();
 	}
 
-	public void toggleAutoRotate(boolean isRotating) {
-		screen.setShowcaseRotation(isRotating);
+	public void toggleShading(boolean shadeFaces) {
+		screen.getScene().getMainCamera().setOption(Camera.LIGHT_FACES, shadeFaces);
+		screen.redraw();
+	}
+
+	public void toggleBackCulling(boolean cullBack) {
+		screen.getScene().getMainCamera().setOption(Camera.CULL_BACK, cullBack);
+		screen.redraw();
 	}
 
 	public String checkScene() {
-		StringBuilder output = new StringBuilder();
-		for (int i = 0; i < screen.getScene().getMeshes().size(); i++){
-			output.append(i).append(": ").append(screen.getScene().getMeshes().get(i)).append("\n");
+		StringBuilder out = new StringBuilder();
+		out.append("Camera: \n").append(screen.getScene().getMainCamera());
+		for (int i = 0; i < screen.getScene().getMeshes().size(); i++) {
+			out.append("Mesh ").append(i).append(": ").append(screen.getScene().getMeshes().get(i)).append("\n");
 		}
-		return output.toString();
+		return out.toString();
 	}
 
 	public void meshTranslate(int meshIdx, double x, double y, double z) {
@@ -52,7 +59,7 @@ public class PixelActor extends Actor {
 		Mesh m = screen.getScene().getMeshes().get(meshIdx);
 		m.setTranslation(m.getTranslation().add(new Vector(x, y, z)));
 
-		refresh();
+		screen.redraw();
 	}
 
 	public void meshRotate(int meshIdx, double x, double y, double z) {
@@ -61,13 +68,6 @@ public class PixelActor extends Actor {
 		Mesh m = screen.getScene().getMeshes().get(meshIdx);
 		m.setRotation(m.getRotation().add(new Vector(x, y, z)));
 
-		refresh();
-	}
-
-	private void refresh() {
-		boolean wasRotating = screen.isShowcaseRotation();
-		screen.setShowcaseRotation(false);
-		screen.step();
-		screen.setShowcaseRotation(wasRotating);
+		screen.redraw();
 	}
 }

@@ -1,4 +1,3 @@
-import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -24,13 +23,12 @@ public class Triangle {
 
 	/**
 	 * Calculates and returns normal of a triangle using the cross-product of two edges
-	 * @param tri
 	 */
 	public static Vector calculateNormal(Triangle tri) {
 		List<Vector> pts = tri.getPts();
 
-		Vector u = pts.get(1).subtract(pts.get(0));
-		Vector v = pts.get(2).subtract(pts.get(0));
+		Vector u = pts.get(1).sub(pts.get(0));
+		Vector v = pts.get(2).sub(pts.get(0));
 		Vector normal = new Vector();
 
 		normal.x = (u.y * v.z) - (u.z * v.y);
@@ -40,11 +38,6 @@ public class Triangle {
 	}
 
 	/* * * Accessor and mutator methods * * */
-
-	@Override
-	public String toString() {
-		return "T=%s".formatted(pts);
-	}
 
 	public List<Vector> getPts() {
 		return pts;

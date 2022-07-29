@@ -3,8 +3,6 @@ import info.gridworld.grid.BoundedGrid;
 import info.gridworld.grid.Location;
 
 import java.awt.Color;
-import java.util.Arrays;
-import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -12,8 +10,7 @@ import java.util.List;
  */
 public class ScreenWorld extends ActorWorld {
 	private final int width, height;
-	private Color drawColor, backgroundColor;
-	private boolean drawOutline, drawFace, shadeFace, showcaseRotation;
+	private Color drawColor, backgroundColor, edgeColor;
 
 	private Scene scene;
 
@@ -23,20 +20,14 @@ public class ScreenWorld extends ActorWorld {
 	private int minCanvasX, minCanvasY, maxCanvasX, maxCanvasY;
 	private final double[][] depthBuffer;
 
-	private final Vector rotationPerStep = new Vector(0.05, -0.1, 0.02);
-
 	public ScreenWorld(int width, int height) {
 		this.scene = new Scene();
 		this.width = width;
 		this.height = height;
 		this.drawColor = Color.BLACK;
 		this.backgroundColor = Color.BLACK;
+		this.edgeColor = Color.WHITE;
 		this.depthBuffer = new double[height][width];
-
-		this.drawOutline = false;
-		this.drawFace = true;
-		this.shadeFace = true;
-		this.showcaseRotation = true;
 
 		// Initialize grid with new actors
 		setGrid(new BoundedGrid<>(this.height, this.width));
@@ -46,6 +37,7 @@ public class ScreenWorld extends ActorWorld {
 				p.putSelfInGrid(getGrid(), new Location(i, j));
 			}
 		}
+
 		updateCanvasBorder(0, 0);
 		updateCanvasBorder(width - 1, height - 1);
 		clear();
@@ -53,24 +45,25 @@ public class ScreenWorld extends ActorWorld {
 
 	@Override
 	public void step() {
+		getScene().update();
+
+		redraw();
+	}
+
+	public void redraw() {
 		clear();
 		minCanvasX = width-1; minCanvasY = height-1;
 		maxCanvasX = 0; maxCanvasY = 0;
-		for (Mesh m : scene.getMeshes()) {
-			if (isShowcaseRotation())
-				m.setRotation(new Vector(
-						m.getRotation().x + rotationPerStep.x,
-						m.getRotation().y + rotationPerStep.y,
-						m.getRotation().z + rotationPerStep.z));
 
-			Camera.rasterizeMesh(this, m);
+		for (Mesh m : scene.getMeshes()) {
+			getScene().getMainCamera().rasterizeMesh(this, m);
 		}
 	}
 
 	/**
 	 * Implements a "Digital Differential Analyzer" algorithm to draw a line at any angle
 	 */
-	public void drawLine(double x1, double y1, double x2, double y2) {
+	public void drawEdge(double x1, double y1, double x2, double y2) {
 		if (x1 > x2) {
 			double temp = x2;
 			x2 = x1;
@@ -82,13 +75,13 @@ public class ScreenWorld extends ActorWorld {
 		}
 
 		double pixelCnt = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
-		double moveX = (x2 - x1) / pixelCnt, moveY = (y2 - y1) / pixelCnt;
+		double dx = (x2 - x1) / pixelCnt, dy = (y2 - y1) / pixelCnt;
 
 		for (int i = 0; i < pixelCnt; i++) {
-			setPixelColor((int) x1, (int) y1, drawColor);
+			setPixelColor((int) x1, (int) y1, edgeColor);
 
-			x1 += moveX;
-			y1 += moveY;
+			x1 += dx;
+			y1 += dy;
 		}
 	}
 
@@ -100,22 +93,32 @@ public class ScreenWorld extends ActorWorld {
 		double 	x1 = pts.get(0).x, y1 = pts.get(0).y,
 				x2 = pts.get(1).x, y2 = pts.get(1).y,
 				x3 = pts.get(2).x, y3 = pts.get(2).y;
-		drawLine(x1, y1, x2, y2);
-		drawLine(x2, y2, x3, y3);
-		drawLine(x3, y3, x1, y1);
+		drawEdge(x1, y1, x2, y2);
+		drawEdge(x2, y2, x3, y3);
+		drawEdge(x3, y3, x1, y1);
 	}
 
 	/**
 	 * Fills a triangle face
 	 */
 	public void fillTriangle(Triangle tri) {
-		// Sort points by y order
-		Integer[] triYOrder = {0, 1, 2};
-		Arrays.sort(triYOrder, Comparator.comparingDouble(i -> tri.getPts().get(i).y));
-
 		// Create variables for vertices on the projected triangle and the UV map
-		Vector v1 = tri.getPts().get(triYOrder[0]), v2 = tri.getPts().get(triYOrder[1]), v3 = tri.getPts().get(triYOrder[2]);
-		Vector t1 = tri.getTPts().get(triYOrder[0]), t2 = tri.getTPts().get(triYOrder[1]), t3 = tri.getTPts().get(triYOrder[2]);
+		Vector v1 = tri.getPts().get(0), v2 = tri.getPts().get(1), v3 = tri.getPts().get(2);
+		Vector t1 = tri.getTPts().get(0), t2 = tri.getTPts().get(1), t3 = tri.getTPts().get(2);
+
+		// Sort points by y order with bubble sort
+		if (v1.y > v2.y) {
+			Vector temp = v1; v1 = v2; v2 = temp;
+			temp = t1; t1 = t2; t2 = temp;
+		}
+		if (v2.y > v3.y) {
+			Vector temp = v2; v2 = v3; v3 = temp;
+			temp = t2; t2 = t3; t3 = temp;
+		}
+		if (v1.y > v2.y) {
+			Vector temp = v1; v1 = v2; v2 = temp;
+			temp = t1; t1 = t2; t2 = temp;
+		}
 
 		// Create fourth point to split the triangle into a top-flat and bottom-flat triangle
 		Vector v4 = new Vector(v1.x + ((v2.y - v1.y) / (v3.y - v1.y)) * (v3.x - v1.x), v2.y, (v1.z + v3.z) / 2);
@@ -144,9 +147,11 @@ public class ScreenWorld extends ActorWorld {
 		double x1 = v1.x + offset * dx1, x2 = v1.x + offset * dx2;
 		double tx1 = t1.x, tx2 = t1.x, ty1 = t1.y, ty2 = t1.y;
 
+		double zyRatio1 = ((v2.z - v1.z) / (v2.y - v1.y)), zyRatio2 = ((v4.z - v1.z) / (v2.y - v1.y));
+
 		for (double y = Math.ceil(v1.y); y < v2.y; y++) {
-			double z1 = v1.z + (y - v1.y) * ((v2.z - v1.z) / (v2.y - v1.y));
-			double z2 = v1.z + (y - v1.y) * ((v4.z - v1.z) / (v2.y - v1.y));
+			double z1 = v1.z + (y - v1.y) * zyRatio1;
+			double z2 = v1.z + (y - v1.y) * zyRatio2;
 
 			for (double x = x1; x < x2; x++) {
 				if (y < 0 || x < 0 || y >= height || x >= width)
@@ -156,10 +161,14 @@ public class ScreenWorld extends ActorWorld {
 				if (z > depthBuffer[(int) y][(int) x]) {
 					depthBuffer[(int) y][(int) x] = z;
 
-					double tx = tx1 + (tx2 - tx1) * ((x - x1) / (x2 - x1));
-					double ty = ty1 + (ty2 - ty1) * ((x - x1) / (x2 - x1));
+					if (loadedTexture != null) {
+						double tx = tx1 + (tx2 - tx1) * ((x - x1) / (x2 - x1));
+						double ty = ty1 + (ty2 - ty1) * ((x - x1) / (x2 - x1));
 
-					setPixelColorTexture((int) x, (int) y, tx, ty);
+						setPixelColorTexture((int) x, (int) y, tx, ty);
+					} else {
+						setPixelColor((int) x, (int) y, getDrawColor());
+					}
 				}
 			}
 
@@ -190,9 +199,11 @@ public class ScreenWorld extends ActorWorld {
 		tx1 = t3.x; tx2 = t3.x;
 		ty1 = t3.y; ty2 = t3.y;
 
+		zyRatio1 = ((v2.z - v3.z) / (v4.y - v3.y)); zyRatio2 = ((v4.z - v3.z) / (v2.y - v3.y));
+
 		for (double y = Math.floor(v3.y); y > v4.y; y--) {
-			double z1 = v3.z + (y - v3.y) * ((v2.z - v3.z) / (v4.y - v3.y));
-			double z2 = v3.z + (y - v3.y) * ((v4.z - v3.z) / (v2.y - v3.y));
+			double z1 = v3.z + (y - v3.y) * zyRatio1;
+			double z2 = v3.z + (y - v3.y) * zyRatio2;
 
 			for (double x = x1; x < x2; x++) {
 				if (y < 0 || x < 0 || y >= height || x >= width)
@@ -201,10 +212,14 @@ public class ScreenWorld extends ActorWorld {
 				if (z > depthBuffer[(int) y][(int) x]) {
 					depthBuffer[(int) y][(int) x] = z;
 
-					double tx = tx1 + (tx2 - tx1) * ((x - x1) / (x2 - x1));
-					double ty = ty1 + (ty2 - ty1) * ((x - x1) / (x2 - x1));
+					if (loadedTexture != null) {
+						double tx = tx1 + (tx2 - tx1) * ((x - x1) / (x2 - x1));
+						double ty = ty1 + (ty2 - ty1) * ((x - x1) / (x2 - x1));
 
-					setPixelColorTexture((int) x, (int) y, tx, ty);
+						setPixelColorTexture((int) x, (int) y, tx, ty);
+					} else {
+						setPixelColor((int) x, (int) y, getDrawColor());
+					}
 				}
 			}
 
@@ -227,11 +242,12 @@ public class ScreenWorld extends ActorWorld {
 
 			if (idx >= loadedTexture.length)
 				return;
+			// https://stackoverflow.com/questions/6524196/java-get-pixel-array-from-image
 			int argb = 0;
-			argb += (((int) loadedTexture[idx] & 0xff) << 24); // alpha
-			argb += ((int) loadedTexture[idx + 1] & 0xff); // blue
-			argb += (((int) loadedTexture[idx + 2] & 0xff) << 8); // green
 			argb += (((int) loadedTexture[idx + 3] & 0xff) << 16); // red
+			argb += (((int) loadedTexture[idx + 2] & 0xff) << 8); // green
+			argb += ((int) loadedTexture[idx + 1] & 0xff); // blue
+			argb += (((int) loadedTexture[idx] & 0xff) << 24); // alpha
 
 			setPixelColor(x, y, ColorHelper.blendColor(new Color(argb), getDrawColor()));
 		} else {
@@ -301,59 +317,21 @@ public class ScreenWorld extends ActorWorld {
 		this.backgroundColor = backgroundColor;
 	}
 
-	public boolean isDrawOutline() {
-		return drawOutline;
+	public Color getEdgeColor() {
+		return edgeColor;
 	}
 
-	public void setDrawOutline(boolean drawOutline) {
-		this.drawOutline = drawOutline;
-	}
-
-	public boolean isDrawFace() {
-		return drawFace;
-	}
-
-	public void setDrawFace(boolean drawFace) {
-		this.drawFace = drawFace;
-	}
-
-	public boolean isShadeFace() {
-		return shadeFace;
-	}
-
-	public void setShadeFace(boolean shadeFace) {
-		this.shadeFace = shadeFace;
-	}
-
-	public boolean isShowcaseRotation() {
-		return showcaseRotation;
-	}
-
-	public void setShowcaseRotation(boolean showcaseRotation) {
-		this.showcaseRotation = showcaseRotation;
+	public void setEdgeColor(Color edgeColor) {
+		this.edgeColor = edgeColor;
 	}
 
 	public byte[] getLoadedTexture() {
 		return loadedTexture;
 	}
 
-	public void setLoadedTexture(byte[] loadedTexture) {
+	public void setLoadedTexture(byte[] loadedTexture, int textureWidth, int textureHeight) {
 		this.loadedTexture = loadedTexture;
-	}
-
-	public int getTextureWidth() {
-		return textureWidth;
-	}
-
-	public void setTextureWidth(int textureWidth) {
 		this.textureWidth = textureWidth;
-	}
-
-	public int getTextureHeight() {
-		return textureHeight;
-	}
-
-	public void setTextureHeight(int textureHeight) {
 		this.textureHeight = textureHeight;
 	}
 }

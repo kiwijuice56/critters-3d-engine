@@ -33,10 +33,11 @@ public class MainRunner {
 
 		// Create lights and add them to the scene
 		List<Light> lights = screen.getScene().getLights();
-		lights.add(new Light(new Vector(-1, -.5, .5), new Color(0, 120, 255), 0.35));
+		lights.add(new Light(new Vector(-1, -.5, .5), new Color(0, 120, 255), 0.25));
 		lights.add(new Light(new Vector(1, -.5, .5), new Color(255, 120, 0), 0.35));
 		lights.add(new Light(new Vector(0, .2, 1), Color.WHITE, 0.99));
 
 		screen.show();
+		screen.redraw();
 	}
 }

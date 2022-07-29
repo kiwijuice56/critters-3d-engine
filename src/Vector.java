@@ -14,7 +14,7 @@ public class Vector {
 		this.z = z;
 	}
 
-	public Vector subtract(Vector other) {
+	public Vector sub(Vector other) {
 		return new Vector(x - other.x, y - other.y, z - other.z);
 	}
 

@@ -1,11 +1,11 @@
-import java.awt.*;
+import java.awt.Color;
 
 public class ColorHelper {
-	public static Color tintColor(Color a, Color b) {
+	public static Color tintColor(Color a, Color b, double bStrength) {
 		return new Color(
-				Math.min(255, a.getRed() + b.getRed()),
-				Math.min(255, a.getGreen() + b.getGreen()),
-				Math.min(255, a.getBlue() + b.getBlue()));
+				Math.min(255, a.getRed() + (int) (b.getRed() * bStrength)),
+				Math.min(255, a.getGreen() + (int) (b.getGreen() * bStrength)),
+				Math.min(255, a.getBlue() + (int) (b.getBlue() * bStrength)));
 	}
 
 	public static Color blendColor(Color a, Color b) {

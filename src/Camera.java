@@ -1,5 +1,7 @@
 import java.awt.Color;
 import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.Comparator;
 import java.util.List;
 
 /**
@@ -7,24 +9,38 @@ import java.util.List;
  */
 public class Camera {
 	private static final double FOV = Math.toRadians(120);
+	private static final double ANGLE = 1.0 / Math.tan(FOV / 2.0);
+
+	private final boolean[] options = new boolean[8];
+
+	public static final int FILL_FACES = 0;
+	public static final int LIGHT_FACES = 1;
+	public static final int DRAW_EDGES = 2;
+	public static final int SORT_DEPTH = 3;
+	public static final int CULL_BACK = 4;
+
+	public Camera() {
+		setOption(FILL_FACES, true);
+		setOption(LIGHT_FACES, true);
+		setOption(DRAW_EDGES, false);
+		setOption(SORT_DEPTH, false);
+		setOption(CULL_BACK, true);
+	}
 
 	/**
 	 * Rasterizes a mesh onto the ScreenWorld
 	 * @param screen The screen to draw to
 	 * @param mesh The mesh to draw
 	 */
-	public static void rasterizeMesh(ScreenWorld screen, Mesh mesh) {
-		screen.setLoadedTexture(mesh.getTexture());
-		screen.setTextureWidth(mesh.getTextureWidth());
-		screen.setTextureHeight(mesh.getTextureHeight());
+	public void rasterizeMesh(ScreenWorld screen, Mesh mesh) {
+		screen.setLoadedTexture(mesh.getTexture(), mesh.getTextureWidth(), mesh.getTextureHeight());
 
-		double angle = 1.0 / Math.tan(FOV / 2.0);
 		List<Triangle> triList = new ArrayList<>();
 
 		// Create copies of triangle points to transform them, then add to a list to sort by depth
 
 		for (Triangle tri : mesh.getTris()) {
-			List<Vector> transformedPts = new ArrayList<>();
+			List<Vector> transformedPts = new ArrayList<>(3);
 			// Translate and rotate each point of the triangle
 			for (Vector pt : tri.getPts())
 				transformedPts.add(translatePoint(rotatePoint(pt, mesh.getRotation()), mesh.getTranslation()));
@@ -33,34 +49,30 @@ public class Camera {
 
 		// This method of depth correction, called the Painter's Method, is a crude but fast way to ensure that
 		// triangles are mostly drawn in the correct order
-		// triList.sort(Comparator.comparingDouble(Triangle::getCenterDepth));
+		// Disabled by default, but necessary for transparent objects
+		if (options[SORT_DEPTH])
+			triList.sort(Comparator.comparingDouble(Triangle::getCenterDepth));
 
 		for (Triangle tri : triList) {
 			List<Vector> projectedPts = new ArrayList<>();
 			// Project each point of the triangle
 			for (Vector pt : tri.getPts())
-				projectedPts.add(projectPoint(pt, screen.getWidth(), angle));
+				projectedPts.add(projectPoint(pt, screen.getWidth(), ANGLE));
 
 			Vector normal = Triangle.calculateNormal(tri);
 			Triangle projectedTri = new Triangle(projectedPts, tri.getTPts());
 
 			// Skip drawing if projected triangle is facing away from camera
-			if (Triangle.calculateNormal(projectedTri).z < 0)
+			if (options[CULL_BACK] && Triangle.calculateNormal(projectedTri).z < 0)
 				continue;
 
-			if (screen.isDrawFace()) {
-				if (screen.isShadeFace()) {
+			if (options[FILL_FACES]) {
+				if (options[LIGHT_FACES]) {
 					screen.setDrawColor(Color.BLACK);
 					// Add each light color scaled by the dot product of the light direction and the triangle normal
 					for (Light light : screen.getScene().getLights()) {
 						double strength = Math.max(0, light.getDir().dot(normal)) * light.getStrength();
-
-						Color c = light.getColor();
-						screen.setDrawColor(
-								ColorHelper.tintColor(screen.getDrawColor(), new Color(
-										(int) (c.getRed() * strength),
-										(int) (c.getGreen() * strength),
-										(int) (c.getBlue() * strength))));
+						screen.setDrawColor(ColorHelper.tintColor(screen.getDrawColor(), light.getColor(), strength));
 					}
 					screen.setDrawColor(ColorHelper.blendColor(screen.getDrawColor(), mesh.getModulate()));
 				} else {
@@ -69,8 +81,7 @@ public class Camera {
 				screen.fillTriangle(projectedTri);
 			}
 
-			if (screen.isDrawOutline()) {
-				screen.setDrawColor(Color.WHITE);
+			if (options[DRAW_EDGES]) {
 				screen.outlineTriangle(projectedTri);
 			}
 		}
@@ -125,5 +136,22 @@ public class Camera {
 				screenSize * (0.5 + ((pt.x * angle) / -Math.abs(pt.z))),
 				screenSize * (0.5 + ((pt.y * angle) / -Math.abs(pt.z))),
 				pt.z);
+	}
+
+	@Override
+	public String toString() {
+		String[] optionNames = {"Fill Faces", "Shade Faces", "Draw Edges", "Sort Depth", "Cull Back"};
+		StringBuilder out = new StringBuilder();
+		for (int i = 0; i < optionNames.length; i++)
+			out.append("	").append(optionNames[i]).append(": ").append(options[i]).append("\n");
+		return out.toString();
+	}
+
+	public void setOption(int idx, boolean val) {
+		options[idx] = val;
+	}
+
+	public boolean getOption(int idx) {
+		return options[idx];
 	}
 }
