@@ -1,6 +1,7 @@
+package backend;
+
 import java.awt.Color;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Comparator;
 import java.util.List;
 
@@ -32,7 +33,7 @@ public class Camera {
 	 * @param screen The screen to draw to
 	 * @param mesh The mesh to draw
 	 */
-	public void rasterizeMesh(ScreenWorld screen, Mesh mesh) {
+	public void rasterizeMesh(Rasterizer screen, List<Light> lights, Mesh mesh) {
 		screen.setLoadedTexture(mesh.getTexture(), mesh.getTextureWidth(), mesh.getTextureHeight());
 
 		List<Triangle> triList = new ArrayList<>();
@@ -68,9 +69,9 @@ public class Camera {
 
 			if (options[FILL_FACES]) {
 				if (options[LIGHT_FACES]) {
-					screen.setDrawColor(Color.BLACK);
+					screen.setDrawColor(0x000000);
 					// Add each light color scaled by the dot product of the light direction and the triangle normal
-					for (Light light : screen.getScene().getLights()) {
+					for (Light light : lights) {
 						double strength = Math.max(0, light.getDir().dot(normal)) * light.getStrength();
 						screen.setDrawColor(ColorHelper.tintColor(screen.getDrawColor(), light.getColor(), strength));
 					}

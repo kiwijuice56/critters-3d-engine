@@ -1,6 +1,4 @@
-import info.gridworld.actor.ActorWorld;
-import info.gridworld.grid.BoundedGrid;
-import info.gridworld.grid.Location;
+package backend;
 
 import java.awt.Color;
 import java.util.List;
@@ -8,55 +6,35 @@ import java.util.List;
 /**
  * Creates pixel interface using actors from gridworld
  */
-public class ScreenWorld extends ActorWorld {
-	private final int width, height;
-	private Color drawColor, backgroundColor, edgeColor;
-
-	private Scene scene;
-
+public class Rasterizer {
+	private int drawColor, edgeColor;
+	private int width, height;
 	private byte[] loadedTexture;
 	private int textureWidth, textureHeight;
 
 	private int minCanvasX, minCanvasY, maxCanvasX, maxCanvasY;
 	private final double[][] depthBuffer;
 
-	public ScreenWorld(int width, int height) {
-		this.scene = new Scene();
+	public Rasterizer(int width, int height) {
 		this.width = width;
 		this.height = height;
-		this.drawColor = Color.BLACK;
-		this.backgroundColor = Color.BLACK;
-		this.edgeColor = Color.WHITE;
+
+		this.drawColor = 0x000000;
+		this.edgeColor = 0xFFFFFF;
 		this.depthBuffer = new double[height][width];
 
-		// Initialize grid with new actors
-		setGrid(new BoundedGrid<>(this.height, this.width));
-		for (int i = 0; i < this.height; i++) {
-			for (int j = 0; j < this.width; j++) {
-				PixelActor p = new PixelActor(this);
-				p.putSelfInGrid(getGrid(), new Location(i, j));
-			}
-		}
-
-		updateCanvasBorder(0, 0);
-		updateCanvasBorder(width - 1, height - 1);
+		minCanvasX = 0; minCanvasY = 0;
+		maxCanvasX = width-1; maxCanvasY = height-1;
 		clear();
 	}
 
-	@Override
-	public void step() {
-		getScene().update();
-
-		redraw();
-	}
-
-	public void redraw() {
+	public void rasterizeScene(Scene scene) {
 		clear();
 		minCanvasX = width-1; minCanvasY = height-1;
 		maxCanvasX = 0; maxCanvasY = 0;
 
 		for (Mesh m : scene.getMeshes()) {
-			getScene().getMainCamera().rasterizeMesh(this, m);
+			scene.getMainCamera().rasterizeMesh(this, scene.getLights(), m);
 		}
 	}
 
@@ -238,7 +216,7 @@ public class ScreenWorld extends ActorWorld {
 			int col = (int) (ty * textureHeight);
 			int row = (int) (tx * textureWidth);
 
-			int idx = (col * textureWidth + row) * 4 ;
+			int idx = (col * textureWidth + row) * 4;
 
 			if (idx >= loadedTexture.length)
 				return;
@@ -249,7 +227,7 @@ public class ScreenWorld extends ActorWorld {
 			argb += ((int) loadedTexture[idx + 1] & 0xff); // blue
 			argb += (((int) loadedTexture[idx] & 0xff) << 24); // alpha
 
-			setPixelColor(x, y, ColorHelper.blendColor(new Color(argb), getDrawColor()));
+			setPixelColor(x, y, ColorHelper.blendColor(argb, drawColor));
 		} else {
 			setPixelColor(x, y, getDrawColor());
 		}
@@ -258,17 +236,20 @@ public class ScreenWorld extends ActorWorld {
 	/**
 	 * Paints a pixel color onto the screen given screen coordinates and a color
 	 */
-	public void setPixelColor(int x, int y, Color c) {
+	public void setPixelColor(int x, int y, int argb) {
 		if (x < 0 || x >= width || y < 0 || y >= height)
 			return;
 		updateCanvasBorder(x, y);
-		getGrid().get(new Location(y, x)).setColor(c);
+
+		// Up to front end implementation
+
 	}
+
 
 	public void clear() {
 		for (int i = minCanvasY; i <= maxCanvasY; i++){
 			for (int j = minCanvasX; j <= maxCanvasX; j++) {
-				setPixelColor(j, i, backgroundColor);
+				setPixelColor(j, i, 0);
 				depthBuffer[i][j] = Integer.MIN_VALUE;
 			}
 		}
@@ -291,37 +272,19 @@ public class ScreenWorld extends ActorWorld {
 		return height;
 	}
 
-	public Scene getScene() {
-		return scene;
-	}
-
-	public void setScene(Scene scene) {
-		this.scene = scene;
-	}
-
-	public Color getDrawColor() {
+	public int getDrawColor() {
 		return drawColor;
 	}
 
-	public void setDrawColor(Color drawColor) {
+	public void setDrawColor(int drawColor) {
 		this.drawColor = drawColor;
 	}
 
-	public Color getBackgroundColor() {
-		return backgroundColor;
-	}
-
-	public void setBackgroundColor(Color backgroundColor) {
-		updateCanvasBorder(0, 0);
-		updateCanvasBorder(width-1, height-1);
-		this.backgroundColor = backgroundColor;
-	}
-
-	public Color getEdgeColor() {
+	public int getEdgeColor() {
 		return edgeColor;
 	}
 
-	public void setEdgeColor(Color edgeColor) {
+	public void setEdgeColor(int edgeColor) {
 		this.edgeColor = edgeColor;
 	}
 

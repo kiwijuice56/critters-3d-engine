@@ -1,3 +1,5 @@
+package backend;
+
 import java.awt.Color;
 import java.awt.image.BufferedImage;
 import java.awt.image.DataBufferByte;
@@ -14,7 +16,7 @@ public class Mesh {
 	private Vector rotation;
 	private Vector translation;
 
-	private Color modulate;
+	private int modulate;
 
 	private byte[] texture;
 	private int textureWidth, textureHeight;
@@ -23,7 +25,7 @@ public class Mesh {
 		this.tris = tris;
 		this.rotation = new Vector(0, 0, 0);
 		this.translation = new Vector(0,0,0);
-		this.modulate = Color.WHITE;
+		this.modulate = 0xFFFFFF;
 
 		this.textureWidth = 0;
 		this.textureHeight = 0;
@@ -64,11 +66,11 @@ public class Mesh {
 		this.translation = translation;
 	}
 
-	public Color getModulate() {
+	public int getModulate() {
 		return modulate;
 	}
 
-	public void setModulate(Color modulate) {
+	public void setModulate(int modulate) {
 		this.modulate = modulate;
 	}
 
