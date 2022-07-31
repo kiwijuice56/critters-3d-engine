@@ -81,133 +81,138 @@ public class Rasterizer {
 	 */
 	public void fillTriangle(Triangle tri) {
 		// Create variables for vertices on the projected triangle and the UV map
-		Vector v1 = tri.getPts().get(0), v2 = tri.getPts().get(1), v3 = tri.getPts().get(2);
+		Vector p1 = tri.getPts().get(0), p2 = tri.getPts().get(1), p3 = tri.getPts().get(2);
 		Vector t1 = tri.getTPts().get(0), t2 = tri.getTPts().get(1), t3 = tri.getTPts().get(2);
 
 		// Sort points by y order with bubble sort
-		if (v1.y > v2.y) {
-			Vector temp = v1; v1 = v2; v2 = temp;
+		if (p1.y > p2.y) {
+			Vector temp = p1; p1 = p2; p2 = temp;
 			temp = t1; t1 = t2; t2 = temp;
 		}
-		if (v2.y > v3.y) {
-			Vector temp = v2; v2 = v3; v3 = temp;
+		if (p2.y > p3.y) {
+			Vector temp = p2; p2 = p3; p3 = temp;
 			temp = t2; t2 = t3; t3 = temp;
 		}
-		if (v1.y > v2.y) {
-			Vector temp = v1; v1 = v2; v2 = temp;
+		if (p1.y > p2.y) {
+			Vector temp = p1; p1 = p2; p2 = temp;
 			temp = t1; t1 = t2; t2 = temp;
 		}
 
-		// Create fourth point to split the triangle into a top-flat and bottom-flat triangle
-		Vector v4 = new Vector(
-				v1.x + ((v2.y - v1.y) / (v3.y - v1.y)) * (v3.x - v1.x),
-				v2.y, (v1.z + v3.z) / 2);
+		// Snap points to pixel space
+		p1.x = (int) p1.x; p1.y = (int) p1.y;
+		p2.x = (int) p2.x; p2.y = (int) p2.y;
+		p3.x = (int) p3.x; p3.y = (int) p3.y;
 
-		// Match the new point to the UV triangle
 
-		Vector t4 = new Vector(
-				(v1.x == v3.x ? t2.x : (t1.x + ((v4.x - v1.x) / (v3.x - v1.x)) * (t3.x - t1.x))),
-				(v1.y == v3.y ? t2.y : (t1.y + ((v4.y - v1.y) / (v3.y - v1.y)) * (t3.y - t1.y))), 0);
+		// Calculate starting and end points for triangle lines in screen and texture space
+		double dx1 = p2.x - p1.x, dx2 = p3.x - p1.x;
+		double dy1 = p2.y - p1.y, dy2 = p3.y - p1.y;
+		double dz1 = p2.z - p1.z, dz2 = p3.z - p1.z;
 
-		// Fill each line and keep track of the legs on each side of the triangle
-		double dx1 = (v2.x - v1.x) / (v2.y - v1.y);
-		double dx2 = (v4.x - v1.x) / (v4.y - v1.y);
+		double du1 = t2.x - t1.x, du2 = t3.x - t1.x;
+		double dv1 = t2.y - t1.y, dv2 = t3.y - t1.y;
 
-		double scanLines = v2.y - v1.y;
-		double du1 = (t2.x - t1.x) / scanLines, du2 = (t4.x - t1.x) / scanLines;
-		double dv1 = (t2.y - t1.y) / scanLines, dv2 = (t4.y - t1.y) / scanLines;
 
-		if (dx2 < dx1) {
-			double temp = dx2; dx2 = dx1; dx1 = temp; // Swap edge slopes
-			temp = du1; du1 = du2; du2 = temp; // Swap texture x slopes
-			temp = dv1; dv1 = dv2; dv2 = temp; // Swap texture y slopes
-		}
+		// Calculate the slope of each line
 
-		// Offset the x positions by the distance the y position moves when snapped to a pixel
-		double offset = Math.ceil(v1.y) - v1.y;
-		double x1 = v1.x + offset * dx1, x2 = v1.x + offset * dx2;
-		double tx1 = t1.x, tx2 = t1.x, ty1 = t1.y, ty2 = t1.y;
+		double xStep1 = 0, xStep2 = 0, uStep1 = 0, uStep2 = 0, vStep1 = 0, vStep2 = 0, zStep1 = 0, zStep2 = 0;
 
-		double zyRatio1 = ((v2.z - v1.z) / (v2.y - v1.y)), zyRatio2 = ((v4.z - v1.z) / (v2.y - v1.y));
+		if (dy1 != 0) xStep1 = dx1 / Math.abs(dy1);
+		if (dy1 != 0) zStep1 = dz1 / Math.abs(dy1);
+		if (dy1 != 0) uStep1 = du1 / Math.abs(dy1);
+		if (dy1 != 0) vStep1 = dv1 / Math.abs(dy1);
 
-		for (double y = Math.ceil(v1.y); y < v2.y; y++) {
-			double z1 = v1.z + (y - v1.y) * zyRatio1;
-			double z2 = v1.z + (y - v1.y) * zyRatio2;
+		if (dy2 != 0) xStep2 = dx2 / Math.abs(dy2);
+		if (dy2 != 0) zStep2 = dz2 / Math.abs(dy2);
+		if (dy2 != 0) uStep2 = du2 / Math.abs(dy2);
+		if (dy2 != 0) vStep2 = dv2 / Math.abs(dy2);
 
-			for (double x = x1; x < x2; x++) {
-				if (y < 0 || x < 0 || y >= height || x >= width)
-					continue;
-				double z = z1 + (x - x1) * ((z2 - z1) / (x2 - x1));
+		// Iterate through each scan line and draw a horizontal line using the calculated start and end points for x, z and UV
+		// Stop after reaching the end of the p1 -> p2 line, as this is where the triangle is no longer bottom flat
+		for (double y = p1.y; y < p2.y; y++) {
+			double x1 = p1.x + xStep1 * (y - p1.y);
+			double x2 = p1.x + xStep2 * (y - p1.y);
 
-				if (z > depthBuffer[(int) y][(int) x]) {
-					depthBuffer[(int) y][(int) x] = z;
+			double z1 = p1.z + zStep1 * (y - p1.y);
+			double z2 = p1.z + zStep2 * (y - p1.y);
 
-					if (loadedTexture != null) {
-						double tx = tx1 + (tx2 - tx1) * ((x - x1) / (x2 - x1));
-						double ty = ty1 + (ty2 - ty1) * ((x - x1) / (x2 - x1));
+			double u1 = t1.x + uStep1 * (y - p1.y);
+			double u2 = t1.x + uStep2 * (y - p1.y);
 
-						setPixelColorTexture((int) x, (int) y, tx, ty);
-					} else {
-						setPixelColor((int) x, (int) y, getDrawColor());
-					}
-				}
+			double v1 = t1.y + vStep1 * (y - p1.y);
+			double v2 = t1.y + vStep2 * (y - p1.y);
+
+			if (x2 < x1) {
+				double temp = x1; x1 = x2; x2 = temp;
+				temp = z1; z1 = z2; z2 = temp;
+				temp = u1; u1 = u2; u2 = temp;
+				temp = v1; v1 = v2; v2 = temp;
 			}
 
-			x1 += dx1; x2 += dx2;
-
-			tx1 += du1; tx2 += du2;
-			ty1 += dv1; ty2 += dv2;
-
-		}
-
-		// Repeat the steps above for the bottom split of the triangle
-		offset = Math.floor(v3.y) - v3.y;
-		dx1 = (v3.x - v2.x) / (v3.y - v2.y);
-		dx2 = (v3.x - v4.x) / (v3.y - v4.y);
-
-		scanLines = Math.abs(v4.y - v3.y);
-		du1 = (t2.x - t3.x) / scanLines; du2 = (t4.x - t3.x) / scanLines;
-		dv1 = (t2.y - t3.y) / scanLines; dv2 = (t4.y - t3.y) / scanLines;
-
-		if (dx2 > dx1) {
-			double temp = dx2; dx2 = dx1; dx1 = temp;
-			temp = du1; du1 = du2; du2 = temp;
-			temp = dv1; dv1 = dv2; dv2 = temp;
-		}
-
-		x1 = v3.x + offset * dx1; x2 = v3.x + offset * dx2;
-
-		tx1 = t3.x; tx2 = t3.x;
-		ty1 = t3.y; ty2 = t3.y;
-
-		zyRatio1 = ((v2.z - v3.z) / (v4.y - v3.y)); zyRatio2 = ((v4.z - v3.z) / (v2.y - v3.y));
-
-		for (double y = Math.floor(v3.y); y > v4.y; y--) {
-			double z1 = v3.z + (y - v3.y) * zyRatio1;
-			double z2 = v3.z + (y - v3.y) * zyRatio2;
-
 			for (double x = x1; x < x2; x++) {
-				if (y < 0 || x < 0 || y >= height || x >= width)
+				double progress = (x - x1) / (x2 - x1);
+				double z = z1 + (z2 - z1) * progress;
+
+				if (x < 0 || y < 0 || x >= width || y >= height || depthBuffer[(int) y][(int) x] > z)
 					continue;
-				double z = z1 + (x - x1) * ((z2 - z1) / (x2 - x1));
-				if (z > depthBuffer[(int) y][(int) x]) {
-					depthBuffer[(int) y][(int) x] = z;
+				depthBuffer[(int) y][(int) x] = z;
 
-					if (loadedTexture != null) {
-						double tx = tx1 + (tx2 - tx1) * ((x - x1) / (x2 - x1));
-						double ty = ty1 + (ty2 - ty1) * ((x - x1) / (x2 - x1));
+				double u = u1 + (u2 - u1) * progress;
+				double v = v1 + (v2 - v1) * progress;
 
-						setPixelColorTexture((int) x, (int) y, tx, ty);
-					} else {
-						setPixelColor((int) x, (int) y, getDrawColor());
-					}
-				}
+				setPixelColorTexture((int) x, (int) y, u, v);
+			}
+		}
+
+		// Repeat the process for the other line to draw a top flat triangle
+
+		dx1 = p3.x - p2.x;
+		dy1 = p3.y - p2.y;
+		dz1 = p3.z - p2.z;
+
+		du1 = t3.x - t2.x;
+		dv1 = t3.y - t2.y;
+
+		xStep1 = 0; uStep1 = 0; vStep1= 0; zStep1 = 0;
+
+		if (dy1 != 0) xStep1 = dx1 / Math.abs(dy1);
+		if (dy1 != 0) uStep1 = du1 / Math.abs(dy1);
+		if (dy1 != 0) vStep1 = dv1 / Math.abs(dy1);
+		if (dy1 != 0) zStep1 = dz1 / Math.abs(dy1);
+
+		for (double y = p2.y; y < p3.y; y++) {
+			double x1 = p2.x + xStep1 * (y - p2.y);
+			double x2 = p1.x + xStep2 * (y - p1.y);
+
+			double z1 = p2.z + zStep1 * (y - p2.y);
+			double z2 = p1.z + zStep2 * (y - p1.y);
+
+			double u1 = t2.x + uStep1 * (y - p2.y);
+			double u2 = t1.x + uStep2 * (y - p1.y);
+
+			double v1 = t2.y + vStep1 * (y - p2.y);
+			double v2 = t1.y + vStep2 * (y - p1.y);
+
+			if (x2 < x1) {
+				double temp = x1; x1 = x2; x2 = temp;
+				temp = z1; z1 = z2; z2 = temp;
+				temp = u1; u1 = u2; u2 = temp;
+				temp = v1; v1 = v2; v2 = temp;
 			}
 
-			x1 -= dx1; x2 -= dx2;
+			for (double x = x1; x < x2; x++) {
+				double progress = (x - x1) / (x2 - x1);
+				double z = z1 + (z2 - z1) * progress;
 
-			tx1 += du1; tx2 += du2;
-			ty1 += dv1; ty2 += dv2;
+				if (x < 0 || y < 0 || x >= width || y >= height || depthBuffer[(int) y][(int) x] > z)
+					continue;
+				depthBuffer[(int) y][(int) x] = z;
+
+				double u = u1 + (u2 - u1) * progress;
+				double v = v1 + (v2 - v1) * progress;
+
+				setPixelColorTexture((int) x, (int) y, u, v);
+			}
 		}
 	}
 
