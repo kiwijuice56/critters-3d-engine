@@ -99,12 +99,15 @@ public class Rasterizer {
 		}
 
 		// Create fourth point to split the triangle into a top-flat and bottom-flat triangle
-		Vector v4 = new Vector(v1.x + ((v2.y - v1.y) / (v3.y - v1.y)) * (v3.x - v1.x), v2.y, (v1.z + v3.z) / 2);
+		Vector v4 = new Vector(
+				v1.x + ((v2.y - v1.y) / (v3.y - v1.y)) * (v3.x - v1.x),
+				v2.y, (v1.z + v3.z) / 2);
 
 		// Match the new point to the UV triangle
+
 		Vector t4 = new Vector(
-				(v1.x == v3.x ? t1.x : (t1.x + ((v4.x - v1.x) / (v3.x - v1.x)) * (t3.x - t1.x))),
-				(v1.y == v3.y ? t1.y : (t1.y + ((v4.y - v1.y) / (v3.y - v1.y)) * (t3.y - t1.y))), 0);
+				(v1.x == v3.x ? t2.x : (t1.x + ((v4.x - v1.x) / (v3.x - v1.x)) * (t3.x - t1.x))),
+				(v1.y == v3.y ? t2.y : (t1.y + ((v4.y - v1.y) / (v3.y - v1.y)) * (t3.y - t1.y))), 0);
 
 		// Fill each line and keep track of the legs on each side of the triangle
 		double dx1 = (v2.x - v1.x) / (v2.y - v1.y);

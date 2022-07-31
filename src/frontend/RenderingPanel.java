@@ -1,22 +1,17 @@
 package frontend;
 
-import backend.Rasterizer;
-import backend.Scene;
-
 import javax.swing.*;
 import java.awt.*;
 
 class RenderingPanel extends JPanel {
 	private int[] outImage;
 	private int width, height, pxSize;
-	private Color backgroundColor;
 
 	public RenderingPanel(int width, int height, int pxSize) {
 		this.width = width;
 		this.height = height;
 		this.pxSize = pxSize;
 
-		this.backgroundColor = Color.BLACK;
 		this.outImage = new int[width * height * pxSize * pxSize];
 
 		setSize(new Dimension(width * pxSize, height * pxSize));

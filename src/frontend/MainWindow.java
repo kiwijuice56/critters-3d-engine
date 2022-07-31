@@ -18,7 +18,7 @@ public class MainWindow extends JFrame {
 	private Scene scene;
 
 	public static void main(String[] args) throws IOException {
-		new MainWindow(400, 300, 2);
+		new MainWindow(400, 350, 2);
 	}
 
 	private void initializeScene() throws IOException {
