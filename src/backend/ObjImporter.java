@@ -1,5 +1,7 @@
 package backend;
 
+import java.io.IOException;
+import java.net.URL;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -15,10 +17,11 @@ public final class ObjImporter {
 
 	/**
 	 * Creates a mesh using a scanner pointing to .obj data
-	 * @param s The scanner with .obj data
+	 * @param url path to the .obj file
 	 * @return The created mesh
 	 */
-	public static Mesh importObj(Scanner s) {
+	public static Mesh importObj(URL url) throws IOException {
+		Scanner s = new Scanner(url.openStream());
 		String name = "UntitledMesh";
 
 		List<Triangle> tris = new ArrayList<>();
@@ -30,9 +33,7 @@ public final class ObjImporter {
 			if (line.length() == 0)
 				continue;
 			switch (line.substring(0, 2)) {
-				case "o " -> {
-					name = line.substring(2);
-				}
+				case "o " ->  name = line.substring(2);
 				case "v " -> {
 					String[] ptStr = line.substring(2).split(" ");
 					double x = Double.parseDouble(ptStr[0]);

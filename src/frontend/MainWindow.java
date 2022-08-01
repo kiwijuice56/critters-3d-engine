@@ -6,15 +6,18 @@ import javax.imageio.ImageIO;
 import javax.swing.*;
 import java.awt.*;
 import java.awt.image.BufferedImage;
-import java.io.File;
 import java.io.IOException;
+import java.net.URL;
+import java.util.List;
 import java.util.Objects;
-import java.util.Scanner;
 
 
+/**
+ * Initializes the scene and starts the program
+ */
 public class MainWindow extends JFrame {
-	private RenderingPanel panel;
-	private Rasterizer rasterizer;
+	private final RenderingPanel panel;
+	private final Rasterizer rasterizer;
 	private Scene scene;
 
 	public static void main(String[] args) throws IOException {
@@ -24,33 +27,34 @@ public class MainWindow extends JFrame {
 	private void initializeScene() throws IOException {
 		this.scene = new Scene();
 
-		Mesh cube = ObjImporter.importObj(new Scanner(new File("resources/shapes/cube.obj")));
-		cube.setTranslation(new Vector(-.6,.2,-1.7));
-		BufferedImage b = ImageIO.read(Objects.requireNonNull(MainWindow.class.getResource("/textures/cube.png")));
-		cube.setTexture(b);
+		// Store any .obj files and textures in `resources` folder write the path as shown below
+		// Ensure that the folder is marked as a resource to the java compiler
+		Mesh cube = ObjImporter.importObj(getResource("/shapes/cube.obj"));
+		cube.setTexture(ImageIO.read(getResource("/textures/cube.png")));
+		cube.setTranslation(new Vector(-0.8,0.2,-1.9));
 
-		Mesh pot = ObjImporter.importObj(new Scanner(new File("resources/shapes/teapot.obj")));
-		pot.setTranslation(new Vector(1.2,-.5,-3.6));
+		Mesh teapot = ObjImporter.importObj(getResource("/shapes/teapot.obj"));
+		teapot.setTranslation(new Vector(1.2,-0.5,-3.6));
 
-		Mesh monkey = ObjImporter.importObj(new Scanner(new File("resources/shapes/monkey.obj")));
-		monkey.setTranslation(new Vector(-.2,-.4,-1.55));
+		Mesh seashell = ObjImporter.importObj(getResource("/shapes/shell.obj"));
+		BufferedImage d = ImageIO.read(getResource("/textures/shell.png"));
+		seashell.setTexture(d);
+		seashell.setTranslation(new Vector(0.1,0.4,-1.5));
 
-		java.util.List<Mesh> meshes = scene.getMeshes();
-		meshes.add(pot);
+		List<Mesh> meshes = scene.getMeshes();
 		meshes.add(cube);
-		meshes.add(monkey);
+		meshes.add(teapot);
+		meshes.add(seashell);
 
 		// Create lights and add them to the scene
 		java.util.List<Light> lights = scene.getLights();
 		lights.add(new Light(new Vector(-1, -.5, .5), new Color(0, 120, 255).getRGB(), 0.25));
-		lights.add(new Light(new Vector(1, -.5, .5), new Color(255, 120, 0).getRGB(), 0.35));
+		lights.add(new Light(new Vector(1, -.5, .5), new Color(255, 120, 0).getRGB(), 0.25));
 		lights.add(new Light(new Vector(0, .2, 1), Color.WHITE.getRGB(), 0.99));
 
 	}
 
 	public MainWindow(int width, int height, int pxSize) throws IOException {
-
-
 		this.panel = new RenderingPanel(width, height, pxSize);
 		this.rasterizer = new CustomRasterizer(panel, width, height);
 
@@ -72,6 +76,8 @@ public class MainWindow extends JFrame {
 		t.start();
 	}
 
-
+	private URL getResource(String path) {
+		return Objects.requireNonNull(MainWindow.class.getResource(path));
+	}
 
 }

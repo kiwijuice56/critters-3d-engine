@@ -4,6 +4,7 @@ package backend;
  * Represents a 3D point or direction
  */
 public class Vector {
+	// public for ease of access
 	public double x, y, z;
 
 	public Vector() {

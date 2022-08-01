@@ -1,16 +1,15 @@
 package backend;
 
-
 /**
  * Applies global sun lighting to meshes in a scene
  */
 public class Light {
-	private Vector dir;
+	private Vector direction;
 	private int color;
 	private double strength;
 
 	public Light(Vector dir, int color, double strength) {
-		this.dir = dir.normalized();
+		this.direction = dir.normalized();
 		this.color = color;
 		this.strength = Math.min(1, Math.max(0, strength));
 	}
@@ -25,12 +24,12 @@ public class Light {
 		this.strength = Math.min(1, Math.max(0, strength));
 	}
 
-	public void setDir(Vector dir) {
-		this.dir = dir.normalized();
+	public void setDirection(Vector direction) {
+		this.direction = direction.normalized();
 	}
 
-	public Vector getDir() {
-		return dir;
+	public Vector getDirection() {
+		return direction;
 	}
 
 	public int getColor() {

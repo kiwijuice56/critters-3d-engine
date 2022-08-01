@@ -1,6 +1,5 @@
 package backend;
 
-import java.awt.Color;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -13,6 +12,8 @@ public class Camera {
 	private static final double ANGLE = 1.0 / Math.tan(FOV / 2.0);
 
 	private final boolean[] options = new boolean[8];
+
+	// Configuration flags
 
 	public static final int FILL_FACES = 0;
 	public static final int LIGHT_FACES = 1;
@@ -55,12 +56,12 @@ public class Camera {
 			triList.sort(Comparator.comparingDouble(Triangle::getCenterDepth));
 
 		for (Triangle tri : triList) {
-			List<Vector> projectedPts = new ArrayList<>();
+			List<Vector> projectedPts = new ArrayList<>(3);
+
 			// Project each point of the triangle
 			for (Vector pt : tri.getPts())
-				projectedPts.add(projectPoint(pt, screen.getWidth(), ANGLE));
+				projectedPts.add(projectPoint(pt, screen.getWidth()));
 
-			Vector normal = Triangle.calculateNormal(tri);
 			Triangle projectedTri = new Triangle(projectedPts, tri.getTPts());
 
 			// Skip drawing if projected triangle is facing away from camera
@@ -69,15 +70,15 @@ public class Camera {
 
 			if (options[FILL_FACES]) {
 				if (options[LIGHT_FACES]) {
-					screen.setDrawColor(0x000000);
+					screen.setFillColor(0x000000);
 					// Add each light color scaled by the dot product of the light direction and the triangle normal
 					for (Light light : lights) {
-						double strength = Math.max(0, light.getDir().dot(normal)) * light.getStrength();
-						screen.setDrawColor(ColorHelper.tintColor(screen.getDrawColor(), light.getColor(), strength));
+						double strength = Math.max(0, light.getDirection().dot(Triangle.calculateNormal(tri))) * light.getStrength();
+						screen.setFillColor(ColorHelper.tintColor(screen.getFillColor(), light.getColor(), strength));
 					}
-					screen.setDrawColor(ColorHelper.blendColor(screen.getDrawColor(), mesh.getModulate()));
+					screen.setFillColor(ColorHelper.blendColor(screen.getFillColor(), mesh.getModulate()));
 				} else {
-					screen.setDrawColor(mesh.getModulate());
+					screen.setFillColor(mesh.getModulate());
 				}
 				screen.fillTriangle(projectedTri);
 			}
@@ -132,10 +133,10 @@ public class Camera {
 	 * @param screenSize The minimum of the screen's width and height to scale up the projection
 	 * @return The projected point
 	 */
-	private static Vector projectPoint(Vector pt, double screenSize, double angle) {
+	private static Vector projectPoint(Vector pt, double screenSize) {
 		return new Vector(
-				screenSize * (0.5 + ((pt.x * angle) / -Math.abs(pt.z))),
-				screenSize * (0.5 + ((pt.y * angle) / -Math.abs(pt.z))),
+				screenSize * (0.5 + ((pt.x * ANGLE) / -Math.abs(pt.z))),
+				screenSize * (0.5 + ((pt.y * ANGLE) / -Math.abs(pt.z))),
 				pt.z);
 	}
 

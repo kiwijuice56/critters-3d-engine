@@ -2,13 +2,16 @@ package frontend;
 
 import backend.Rasterizer;
 
+/**
+ * Connects Rasterizer to RenderingPanel
+ */
+
 class CustomRasterizer extends Rasterizer {
-	private RenderingPanel panel;
+	private final RenderingPanel panel;
 
 	public CustomRasterizer(RenderingPanel panel, int width, int height) {
 		super(width, height);
 		this.panel = panel;
-
 	}
 
 	@Override

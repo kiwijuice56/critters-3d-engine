@@ -1,37 +1,33 @@
 package backend;
 
-import java.awt.Color;
-import java.util.List;
-
 /**
  * Creates pixel interface using actors from gridworld
  */
 public class Rasterizer {
-	private int drawColor, edgeColor;
-	private int width, height;
+	private int fillColor, lineColor;
+	private final int width, height;
 	private byte[] loadedTexture;
 	private int textureWidth, textureHeight;
 
-	private int minCanvasX, minCanvasY, maxCanvasX, maxCanvasY;
+	// Store status of the screen
 	private final double[][] depthBuffer;
 
 	public Rasterizer(int width, int height) {
 		this.width = width;
 		this.height = height;
 
-		this.drawColor = 0x000000;
-		this.edgeColor = 0xFFFFFF;
+		this.fillColor = 0x000000;
+		this.lineColor = 0x000000;
 		this.depthBuffer = new double[height][width];
 
-		minCanvasX = 0; minCanvasY = 0;
-		maxCanvasX = width-1; maxCanvasY = height-1;
 		clear();
 	}
 
+	/**
+	 * Draws each mesh in a scene using the camera and lights
+	 */
 	public void rasterizeScene(Scene scene) {
 		clear();
-		minCanvasX = width-1; minCanvasY = height-1;
-		maxCanvasX = 0; maxCanvasY = 0;
 
 		for (Mesh m : scene.getMeshes()) {
 			scene.getMainCamera().rasterizeMesh(this, scene.getLights(), m);
@@ -39,27 +35,29 @@ public class Rasterizer {
 	}
 
 	/**
-	 * Implements a "Digital Differential Analyzer" algorithm to draw a line at any angle
+	 * Draws line from p1 to p2 using edgeColor
 	 */
-	public void drawEdge(double x1, double y1, double x2, double y2) {
+	public void drawEdge(Vector p1, Vector p2) {
+		double x1 = p1.x, x2 = p2.x, y1 = p1.y, y2 = p2.y, z1 = p1.z, z2 = p2.z;
 		if (x1 > x2) {
-			double temp = x2;
-			x2 = x1;
-			x1 = temp;
-
-			temp = y2;
-			y2 = y1;
-			y1 = temp;
+			double temp = x2; x2 = x1; x1 = temp;
+			temp = y2; y2 = y1; y1 = temp;
+			temp = z2; z2 = z1; z1 = temp;
 		}
 
 		double pixelCnt = Math.max(Math.abs(x2 - x1), Math.abs(y2 - y1));
-		double dx = (x2 - x1) / pixelCnt, dy = (y2 - y1) / pixelCnt;
+		double dx = (x2 - x1) / pixelCnt, dy = (y2 - y1) / pixelCnt, dz = (z2 - z1) / pixelCnt;
 
 		for (int i = 0; i < pixelCnt; i++) {
-			setPixelColor((int) x1, (int) y1, edgeColor);
+			if (x1 < 0 || y1 < 0 || x1 >= width || y1 >= height || depthBuffer[(int) y1][(int) x1] > z1)
+				continue;
+			depthBuffer[(int) y1][(int) x1] = z1;
+
+			setPixelColor((int) x1, (int) y1, lineColor);
 
 			x1 += dx;
 			y1 += dy;
+			z1 += dz;
 		}
 	}
 
@@ -67,13 +65,9 @@ public class Rasterizer {
 	 * Draws the edges of a triangle for wireframe mode
 	 */
 	public void outlineTriangle(Triangle tri) {
-		List<Vector> pts = tri.getPts();
-		double 	x1 = pts.get(0).x, y1 = pts.get(0).y,
-				x2 = pts.get(1).x, y2 = pts.get(1).y,
-				x3 = pts.get(2).x, y3 = pts.get(2).y;
-		drawEdge(x1, y1, x2, y2);
-		drawEdge(x2, y2, x3, y3);
-		drawEdge(x3, y3, x1, y1);
+		drawEdge(tri.getPts().get(0), tri.getPts().get(1));
+		drawEdge(tri.getPts().get(1), tri.getPts().get(2));
+		drawEdge(tri.getPts().get(2), tri.getPts().get(0));
 	}
 
 	/**
@@ -235,9 +229,9 @@ public class Rasterizer {
 			argb += ((int) loadedTexture[idx + 1] & 0xff); // blue
 			argb += (((int) loadedTexture[idx] & 0xff) << 24); // alpha
 
-			setPixelColor(x, y, ColorHelper.blendColor(argb, drawColor));
+			setPixelColor(x, y, ColorHelper.blendColor(argb, fillColor));
 		} else {
-			setPixelColor(x, y, getDrawColor());
+			setPixelColor(x, y, getFillColor());
 		}
 	}
 
@@ -247,27 +241,18 @@ public class Rasterizer {
 	public void setPixelColor(int x, int y, int argb) {
 		if (x < 0 || x >= width || y < 0 || y >= height)
 			return;
-		updateCanvasBorder(x, y);
 
-		// Up to front end implementation
-
+		// Front end implements how to draw each pixel
 	}
 
 
 	public void clear() {
-		for (int i = minCanvasY; i <= maxCanvasY; i++){
-			for (int j = minCanvasX; j <= maxCanvasX; j++) {
-				setPixelColor(j, i, 0);
+		for (int i = 0; i < height; i++){
+			for (int j = 0; j < width; j++) {
+				setPixelColor(j, i, -1);
 				depthBuffer[i][j] = Integer.MIN_VALUE;
 			}
 		}
-	}
-
-	private void updateCanvasBorder(int x, int y) {
-		minCanvasX = Math.min(minCanvasX, x);
-		minCanvasY = Math.min(minCanvasY, y);
-		maxCanvasX = Math.max(maxCanvasX, x);
-		maxCanvasY = Math.max(maxCanvasY, y);
 	}
 
 	/* * * Accessor and mutator methods * * */
@@ -280,20 +265,20 @@ public class Rasterizer {
 		return height;
 	}
 
-	public int getDrawColor() {
-		return drawColor;
+	public int getFillColor() {
+		return fillColor;
 	}
 
-	public void setDrawColor(int drawColor) {
-		this.drawColor = drawColor;
+	public void setFillColor(int fillColor) {
+		this.fillColor = fillColor;
 	}
 
-	public int getEdgeColor() {
-		return edgeColor;
+	public int getLineColor() {
+		return lineColor;
 	}
 
-	public void setEdgeColor(int edgeColor) {
-		this.edgeColor = edgeColor;
+	public void setLineColor(int lineColor) {
+		this.lineColor = lineColor;
 	}
 
 	public byte[] getLoadedTexture() {
